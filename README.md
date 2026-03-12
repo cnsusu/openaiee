@@ -19,13 +19,13 @@ Deployment options
 
 我们推荐使用 Vercel 进行最简单的部署。点击下面开始：
 
-[![通过 Vercel 部署](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/agicto/openaiee)
+[![通过 Vercel 部署](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/cnsusu/openaiee)
 
 ### 通过 Netlify 部署
 
 Netlify 是另一个不错的部署选项：
 
-[![部署至 Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/agicto/openaiee)
+[![部署至 Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/cnsusu/openaiee)
 
 ## 配置说明
 
