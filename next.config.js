@@ -3,6 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
     return [
+      // OpenRouter Api path (必须在其他 /v1 规则之前)
+      {
+        source: "/openrouter/:path*",
+        destination: "/api/proxy",
+      },
       // Claude Api path
       {
         source: "/v1/messages",
@@ -14,17 +19,17 @@ const nextConfig = {
       },
       // OpenAI Api path
       {
-        source: "/v1/(.*)",
+        source: "/v1/:path*",
         destination: "/api/proxy",
       },
       // Gemini Api path
       {
-        source: "/v1beta/(.*)",
+        source: "/v1beta/:path*",
         destination: "/api/proxy",
       },
       // Groq Api path
       {
-        source: "/openai/v1/(.*)",
+        source: "/openai/v1/:path*",
         destination: "/api/proxy",
       },
       {

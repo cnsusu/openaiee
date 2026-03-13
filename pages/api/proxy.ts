@@ -7,18 +7,23 @@ export const config = {
 export default async function handler(req: NextRequest) {
   const url = new URL(req.url);
 
-  if (url.pathname.startsWith('/v1beta')) {
+  // OpenRouter API - openrouter.ai/api/v1/...
+  if (url.pathname.startsWith('/openrouter/')) {
+    url.host = 'openrouter.ai';
+    // 将 /openrouter/v1/... 转换为 /api/v1/...
+    url.pathname = '/api' + url.pathname.replace('/openrouter', '');
+  } else if (url.pathname.startsWith('/v1beta')) {
     url.host = 'generativelanguage.googleapis.com';
   } else if (url.pathname.startsWith('/headers')) {
     url.host = 'httpbin.org';
-  } else if (url.pathname.startsWith('/openai/v1')) {
-    url.host = 'api.groq.com';
+  } else if (url.pathname.startsWith('/openai/v1')) {
+    url.host = 'api.groq.com';
   } else if (url.pathname.startsWith('/v1/messages') || url.pathname.startsWith('/v1/complete')) {
-    url.host = 'api.anthropic.com';
+    url.host = 'api.anthropic.com';
   } else {
     url.host = 'api.openai.com';
   }
-  
+
   url.protocol = 'https:';
   url.port = '';
 
@@ -41,7 +46,8 @@ export default async function handler(req: NextRequest) {
   headers.set('X-Forwarded-For', '104.28.220.' + Math.floor(Math.random() * 256));
 
   // Only transfer specific headers from the original request
-  const allowedHeaders = ['authorization', 'content-length', 'x-api-key'];
+  // OpenRouter headers: HTTP-Referer, X-Title for rankings
+  const allowedHeaders = ['authorization', 'content-length', 'x-api-key', 'http-referer', 'x-title'];
   for (const header of allowedHeaders) {
     const value = req.headers.get(header);
     if (value) {
@@ -51,7 +57,7 @@ export default async function handler(req: NextRequest) {
 
   try {
     const { method, body, signal } = req;
-    
+
     const response = await fetch(
       url.toString(),
       {
