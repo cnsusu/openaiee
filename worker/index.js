@@ -6,7 +6,7 @@ async function handleRequest(request, env) {
         return proxy(request, env);
     } else if (token === env.ACCESS_TOKEN) {
         console.log('Accessing master handler');
-        var result;
+        let result;
         if (request.method === 'DELETE') {
             await deleteUser(next, env);
             result = 'ok';
@@ -25,18 +25,26 @@ async function handleRequest(request, env) {
 async function proxy(request, env) {
     const headers = new Headers(request.headers);
     const authKey = 'Authorization';
-    const token = headers.get(authKey).split(' ').pop();
+    const authHeader = headers.get(authKey);
+
+    // Check if Authorization header exists
+    if (!authHeader) throw 'Auth required';
+
+    const token = authHeader.split(' ').pop();
     if (!token) throw 'Auth required';
 
     // validate user
     const users = await env.KV.get("users", { type: 'json' }) || {};
     let name;
-    for (let key in users)
-        if (users[key].key === token)
+    for (let key in users) {
+        if (users[key].key === token) {
             name = key;
+            break;
+        }
+    }
 
     if (!name) throw 'Invalid token';
-    console.log(`User ${name} acepted.`);
+    console.log(`User ${name} accepted.`);
 
     // proxy the request
     const url = new URL(request.url);
@@ -45,8 +53,16 @@ async function proxy(request, env) {
     // 2. replace with the real API key
     headers.set(authKey, `Bearer ${env.OPENAPI_API_KEY}`);
     // 3. issue the underlying request
-    // Only pass body if request method is not 'GET'
-    const requestBody = request.method !== 'GET' ? JSON.stringify(await request.json()) : null;
+    // Only pass body if request method is not 'GET' and has body
+    let requestBody = null;
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+        try {
+            requestBody = await request.text();
+        } catch {
+            // No body or body already consumed
+        }
+    }
+
     return fetch(url, {
         method: request.method,
         headers: headers,
@@ -55,7 +71,7 @@ async function proxy(request, env) {
 }
 
 async function registerUser(user, env) {
-    if (!user?.length) throw 'Invalid username1';
+    if (!user?.length) throw 'Invalid username';
 
     const users = await env.KV.get("users", { type: 'json' }) || {};
     const key = generateAPIKey();
@@ -65,7 +81,7 @@ async function registerUser(user, env) {
 }
 
 async function deleteUser(user, env) {
-    if (!user?.length) throw 'Invalid username2';
+    if (!user?.length) throw 'Invalid username';
 
     const users = await env.KV.get("users", { type: 'json' }) || {};
     if (!users[user]) throw 'User not found';
@@ -78,8 +94,12 @@ function generateAPIKey() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let apiKey = 'sk-cfw';
 
+    // Use crypto.getRandomValues for secure random generation
+    const randomValues = new Uint32Array(45);
+    crypto.getRandomValues(randomValues);
+
     for (let i = 0; i < 45; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
+        const randomIndex = randomValues[i] % characters.length;
         apiKey += characters.charAt(randomIndex);
     }
 
@@ -88,6 +108,8 @@ function generateAPIKey() {
 
 export default {
     async fetch(request, env) {
-        return handleRequest(request, env).catch(err => new Response(err || 'Unknown reason', { status: 403 }))
+        return handleRequest(request, env).catch(err =>
+            new Response(err || 'Unknown reason', { status: 403 })
+        );
     }
 };

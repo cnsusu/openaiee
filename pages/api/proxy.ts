@@ -18,7 +18,8 @@ export default async function handler(req: NextRequest) {
     url.host = 'httpbin.org';
   } else if (url.pathname.startsWith('/openai/v1')) {
     url.host = 'api.groq.com';
-  } else if (url.pathname.startsWith('/v1/messages') || url.pathname.startsWith('/v1/complete')) {
+  } else if (url.pathname.startsWith('/v1/messages') || url.pathname.startsWith('/v1/completions')) {
+    // Claude API endpoints
     url.host = 'api.anthropic.com';
   } else {
     url.host = 'api.openai.com';
@@ -32,22 +33,19 @@ export default async function handler(req: NextRequest) {
   // Set essential headers
   headers.set('host', url.host);
   headers.set('accept', '*/*');
-  headers.set('accept-language', 'en-US,en;q=0.9');
   headers.set('content-type', req.headers.get('content-type') || 'application/json');
-  headers.set('sec-ch-ua', '"Google Chrome";v="113", "Chromium";v="113", "Not-A.Brand";v="24"');
-  headers.set('sec-ch-ua-mobile', '?0');
-  headers.set('sec-ch-ua-platform', '"Windows"');
-  headers.set('sec-fetch-dest', 'empty');
-  headers.set('sec-fetch-mode', 'cors');
-  headers.set('sec-fetch-site', 'same-origin');
-  headers.set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36');
-
-  // Set a US-based IP
-  headers.set('X-Forwarded-For', '104.28.220.' + Math.floor(Math.random() * 256));
 
   // Only transfer specific headers from the original request
   // OpenRouter headers: HTTP-Referer, X-Title for rankings
-  const allowedHeaders = ['authorization', 'content-length', 'x-api-key', 'http-referer', 'x-title'];
+  // anthropic-version for Claude API
+  const allowedHeaders = [
+    'authorization',
+    'content-length',
+    'x-api-key',
+    'http-referer',
+    'x-title',
+    'anthropic-version'
+  ];
   for (const header of allowedHeaders) {
     const value = req.headers.get(header);
     if (value) {
@@ -77,7 +75,11 @@ export default async function handler(req: NextRequest) {
 
     return modifiedResponse;
   } catch (error) {
-    console.error('Error:', error);
-    return new Response('Internal Server Error', { status: 500 });
+    console.error('Proxy error:', error);
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
